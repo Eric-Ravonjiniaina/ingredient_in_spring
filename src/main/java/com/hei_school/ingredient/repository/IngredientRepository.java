@@ -21,17 +21,16 @@ public class IngredientRepository {
 
     public List<Ingredient> findAll() {
         List<Ingredient> list = new ArrayList<>();
-        String sql = "SELECT * FROM ingredient";
+        String sql = "SELECT id, name, price, category FROM ingredient";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-
             while (rs.next()) {
                 list.add(new Ingredient(
-                        rs.getString("id"),
+                        String.valueOf(rs.getInt("id")),
                         rs.getString("name"),
-                        rs.getDouble("unit_price"),
+                        rs.getDouble("price"),
                         rs.getString("category")
                 ));
             }
@@ -43,17 +42,16 @@ public class IngredientRepository {
 
     public Ingredient findById(String id) {
         String sql = "SELECT * FROM ingredient WHERE id = ?";
-
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, Integer.parseInt(id));
 
-            ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new Ingredient(
-                            rs.getString("id"),
+                            String.valueOf(rs.getInt("id")),
                             rs.getString("name"),
-                            rs.getDouble("unit_price"),
+                            rs.getDouble("price"),
                             rs.getString("category")
                     );
                 }
