@@ -67,4 +67,49 @@ public class DishRepository {
         }
         return ingredients;
     }
+    public boolean exists(String id) {
+        String sql = "SELECT id FROM dish WHERE id = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, Integer.parseInt(id));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la vérification du plat " + id);
+        }
+    }
+
+    public void updateAssociations(String dishId, List<Ingredient> ingredients) {
+        String deleteSql = "DELETE FROM dish_ingredient WHERE id_dish = ?";
+        String insertSql = "INSERT INTO dish_ingredient (id_dish, id_ingredient) VALUES (?, ?)";
+
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                int idPlat = Integer.parseInt(dishId);
+
+                try (PreparedStatement psDelete = conn.prepareStatement(deleteSql)) {
+                    psDelete.setInt(1, idPlat);
+                    psDelete.executeUpdate();
+                }
+
+                try (PreparedStatement psInsert = conn.prepareStatement(insertSql)) {
+                    for (Ingredient ing : ingredients) {
+                        psInsert.setInt(1, idPlat);
+                        psInsert.setInt(2, Integer.parseInt(ing.getId()));
+                        psInsert.executeUpdate();
+                    }
+                    psInsert.executeUpdate();
+                }
+                conn.commit();
+            } catch (Exception e) {
+                conn.rollback();
+                throw new RuntimeException("Erreur lors de la mise à jour des ingrédients : " + e.getMessage());
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur de connexion SQL");
+        }
+    }
 }
