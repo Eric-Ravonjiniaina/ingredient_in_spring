@@ -6,6 +6,7 @@ import com.hei_school.ingredient.repository.DishRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -43,6 +44,26 @@ public class DishController {
             return ResponseEntity
                     .status(500)
                     .body(e.getMessage());
+        }
+    }
+    @PostMapping
+    public ResponseEntity<?> createDishes(@RequestBody List<Dish> dishesToCreate) {
+        List<Dish> createdDishes = new ArrayList<>();
+
+        try {
+            for (Dish d : dishesToCreate) {
+                if (dishRepository.existsByName(d.getName())) {
+                    return ResponseEntity.status(400)
+                            .body("Dish.name=" + d.getName() + " already exists");
+                }
+                Dish saved = dishRepository.save(d);
+                createdDishes.add(saved);
+            }
+
+            return ResponseEntity.status(201).body(createdDishes);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
         }
     }
 }

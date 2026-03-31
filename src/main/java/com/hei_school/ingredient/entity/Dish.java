@@ -6,7 +6,9 @@ public class Dish {
     private String id;
     private String name;
     private double unitPrice;
+    private DishType dishType;
     private List<Ingredient> ingredients;
+    private double margin;
 
     public Dish() {}
     public Dish(String id, String name, double unitPrice, List<Ingredient> ingredients) {
@@ -14,6 +16,22 @@ public class Dish {
         this.name = name;
         this.unitPrice = unitPrice;
         this.ingredients = ingredients;
+    }
+
+    public double getSellingPrice() {
+        return this.unitPrice * (1 + this.margin);
+    }
+
+    public void setMargin(double margin) {
+        this.margin = margin;
+    }
+
+    public DishType getDishType() {
+        return dishType;
+    }
+
+    public void setDishType(DishType dishType) {
+        this.dishType = dishType;
     }
 
     public String getId() {

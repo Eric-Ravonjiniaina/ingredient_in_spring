@@ -1,6 +1,7 @@
 package com.hei_school.ingredient.repository;
 
 import com.hei_school.ingredient.entity.Dish;
+import com.hei_school.ingredient.entity.DishType;
 import com.hei_school.ingredient.entity.Ingredient;
 import org.springframework.stereotype.Repository;
 
@@ -101,7 +102,6 @@ public class DishRepository {
                         psInsert.setInt(2, Integer.parseInt(ing.getId()));
                         psInsert.executeUpdate();
                     }
-                    psInsert.executeUpdate();
                 }
                 conn.commit();
             } catch (Exception e) {
@@ -111,5 +111,83 @@ public class DishRepository {
         } catch (SQLException e) {
             throw new RuntimeException("Erreur de connexion SQL");
         }
+    }
+    public boolean existsByName(String name) {
+        String sql = "SELECT 1 FROM dish WHERE name = ?";
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public Dish save(Dish dish) {
+        // On demande à JDBC de nous retourner la clé générée
+        String sql = "INSERT INTO dish (name, dish_type, selling_price) VALUES (?, ?::dish_type, ?)";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+
+            ps.setString(1, dish.getName());
+            ps.setString(2, dish.getDishType().name());
+            ps.setDouble(3, dish.getSellingPrice());
+
+            ps.executeUpdate(); // On utilise executeUpdate pour un INSERT
+
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    dish.setId(String.valueOf(rs.getInt(1)));
+                }
+            }
+            return dish;
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur insertion : " + e.getMessage());
+        }
+
+    }
+    public List<Dish> findAll(Double priceUnder, Double priceOver, String name) {
+        List<Dish> dishes = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM dish WHERE 1=1");
+
+        if (priceUnder != null) sql.append(" AND selling_price <= ?");
+        if (priceOver != null) sql.append(" AND selling_price >= ?");
+        if (name != null && !name.isEmpty()) sql.append(" AND name ILIKE ?");
+
+        try (Connection conn = dataSource.getConnection(); // Votre méthode de connexion
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (priceUnder != null) {
+                ps.setDouble(paramIndex++, priceUnder);
+            }
+            if (priceOver != null) {
+                ps.setDouble(paramIndex++, priceOver);
+            }
+            if (name != null && !name.isEmpty()) {
+                ps.setString(paramIndex++, "%" + name + "%");
+            }
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                dishes.add(mapToDish(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return dishes;
+    }
+
+    private Dish mapToDish(ResultSet rs) throws SQLException {
+        Dish dish = new Dish();
+        dish.setId(rs.getString("id"));
+        dish.setName(rs.getString("name"));
+        dish.setDishType(DishType.valueOf(rs.getString("dish_type")));
+        dish.setUnitPrice(rs.getDouble("unit_price"));
+        dish.setMargin(rs.getDouble("margin"));
+        return dish;
     }
 }

@@ -61,4 +61,29 @@ public class IngredientRepository {
         }
         return null;
     }
+    public double getStockValue(String id, String at) {
+        String sql = """
+        SELECT 
+            (SELECT COALESCE(initial_stock, 0) FROM ingredient WHERE id = ?) +
+            COALESCE(SUM(CASE WHEN type = 'IN' THEN quantity ELSE -quantity END), 0) as current_stock
+        FROM stock_movement 
+        WHERE id_ingredient = ? AND creation_datetime <= CAST(? AS TIMESTAMP)
+        """;
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            int intId = Integer.parseInt(id);
+            ps.setInt(1, intId);
+            ps.setInt(2, intId);
+            ps.setString(3, at);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble("current_stock");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur SQL Stock: " + e.getMessage());
+        }
+        return 0.0;
+    }
 }
